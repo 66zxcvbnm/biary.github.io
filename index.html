@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>그림 일기</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Gaegu&display=swap');
+        .diary-font {
+            font-family: 'Gaegu', 'Malgun Gothic', sans-serif;
+        }
+        /* 원고지 격자 스타일 */
+        .grid-cell {
+            aspect-ratio: 1 / 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen flex flex-col items-center py-8 text-gray-800">
+
+    <h1 class="text-3xl font-bold mb-6 text-indigo-600">🎨 그림 일기 만들기</h1>
+
+    <div class="flex flex-col lg:flex-row gap-8 max-w-6xl w-full px-4 justify-center items-start">
+        
+        <div class="bg-white p-6 rounded-2xl shadow-md w-full lg:w-96 flex flex-col gap-4">
+            <h2 class="text-xl font-bold border-b pb-2 mb-2">일기 정보 입력</h2>
+            
+            <div>
+                <label class="block text-sm font-medium mb-1">날짜 선택</label>
+                <input type="date" id="input-date" class="w-full border rounded-lg p-2 bg-gray-50 text-sm">
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium mb-1">날씨</label>
+                <select id="input-weather" class="w-full border rounded-lg p-2 bg-gray-50 text-sm">
+                    <option value="☀️ 맑음">☀️ 맑음</option>
+                    <option value="☁️ 구름">☁️ 구름</option>
+                    <option value="☔ 비">☔ 비</option>
+                    <option value="❄️ 눈">❄️ 눈</option>
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium mb-1">사진 올리기</label>
+                <input type="file" id="input-image" accept="image/*" class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium mb-1">제목</label>
+                <input type="text" id="input-title" placeholder="제목을 입력하세요" class="w-full border rounded-lg p-2 text-sm" maxlength="20">
+            </div>
+
+            <div>
+                <div class="flex justify-between items-center mb-1">
+                    <label class="block text-sm font-medium">내용 (최대 100자)</label>
+                    <span id="char-count" class="text-xs text-gray-400">0 / 100</span>
+                </div>
+                <textarea id="input-content" rows="4" placeholder="오늘 하루는 어땠나요? (한 칸에 한 글자씩 적힙니다.)" class="w-full border rounded-lg p-2 text-sm resize-none" maxlength="100"></textarea>
+            </div>
+
+            <h2 class="text-xl font-bold border-b pb-2 mt-2 mb-1">디자인 설정</h2>
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium mb-1">테마 배경색</label>
+                    <input type="color" id="color-theme" value="#ffffff" class="w-full h-10 rounded-lg cursor-pointer border p-1">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1">글씨/테두리색</label>
+                    <input type="color" id="color-text" value="#000000" class="w-full h-10 rounded-lg cursor-pointer border p-1">
+                </div>
+            </div>
+
+            <button id="btn-save" class="w-full mt-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-xl shadow transition duration-200 cursor-pointer">
+                📷 이미지 저장
+            </button>
+        </div>
+
+        <div class="shadow-2xl rounded-2xl overflow-hidden bg-white border border-gray-200 sticky top-8">
+            <div id="diary-card" class="w-[450px] h-[800px] p-6 flex flex-col justify-between diary-font select-none bg-white text-black">
+                
+                <div>
+                    <div id="diary-header" class="flex justify-between items-center border-2 border-black p-3 rounded-lg text-lg font-bold mb-4">
+                        <div id="diary-date" class="flex gap-1">
+                            <span>0000년</span> <span>00월</span> <span>00일</span> <span>요일</span>
+                        </div>
+                        <div id="diary-weather">☀️ 맑음</div>
+                    </div>
+
+                    <div id="diary-image-box" class="w-full h-72 border-2 border-black rounded-lg flex items-center justify-center bg-gray-50 overflow-hidden relative mb-4">
+                        <img id="diary-img" src="" class="w-full h-full object-cover hidden">
+                        <span id="diary-img-placeholder" class="text-gray-400 text-sm">올라온 사진이 없습니다</span>
+                    </div>
+
+                    <div id="diary-title-box" class="border-b-2 border-black pb-1 mb-4 text-xl font-bold flex items-center gap-2">
+                        <span>제목:</span>
+                        <span id="diary-title" class="font-normal"></span>
+                    </div>
+                </div>
+
+                <div id="diary-grid" class="grid grid-cols-10 border-t border-l border-black">
+                    </div>
+
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // DOM 요소 캐싱
+        const inputDate = document.getElementById('input-date');
+        const inputWeather = document.getElementById('input-weather');
+        const inputImage = document.getElementById('input-image');
+        const inputTitle = document.getElementById('input-title');
+        const inputContent = document.getElementById('input-content');
+        const charCount = document.getElementById('char-count');
+        
+        const colorTheme = document.getElementById('color-theme');
+        const colorText = document.getElementById('color-text');
+        const btnSave = document.getElementById('btn-save');
+
+        const diaryCard = document.getElementById('diary-card');
+        const diaryDate = document.getElementById('diary-date');
+        const diaryWeather = document.getElementById('diary-weather');
+        const diaryImg = document.getElementById('diary-img');
+        const diaryImgPlaceholder = document.getElementById('diary-img-placeholder');
+        const diaryTitle = document.getElementById('diary-title');
+        const diaryGrid = document.getElementById('diary-grid');
+
+        // 기본 날짜 설정 (오늘)
+        const today = new Date().toISOString().split('T')[0];
+        inputDate.value = today;
+
+        // 100자 격자 생성 함수
+        function initGrid() {
+            diaryGrid.innerHTML = '';
+            for (let i = 0; i < 100; i++) {
+                const cell = document.createElement('div');
+                cell.className = 'grid-cell border-r border-b border-black';
+                cell.id = `cell-${i}`;
+                diaryGrid.appendChild(cell);
+            }
+        }
+
+        // 실시간 연동 업데이트 함수
+        function updateDiary() {
+            // 1. 날짜 업데이트
+            if (inputDate.value) {
+                const d = new Date(inputDate.value);
+                const year = d.getFullYear();
+                const month = String(d.getMonth() + 1).padStart(2, '0');
+                const date = String(d.getDate()).padStart(2, '0');
+                const week = ['일', '월', '화', '수', '목', '금', '토'][d.getDay()];
+                diaryDate.innerHTML = `<span>${year}년</span> <span>${month}월</span> <span>${date}일</span> <span>${week}요일</span>`;
+            }
+
+            // 2. 날씨 업데이트
+            diaryWeather.textContent = inputWeather.value;
+
+            // 3. 제목 업데이트
+            diaryTitle.textContent = inputTitle.value;
+
+            // 4. 내용(격자글) 업데이트
+            const text = inputContent.value;
+            charCount.textContent = `${text.length} / 100`;
+            
+            for (let i = 0; i < 100; i++) {
+                const cell = document.getElementById(`cell-${i}`);
+                cell.textContent = text[i] || ''; // 글자가 없으면 빈칸
+            }
+        }
+
+        // 색상 및 스타일 실시간 적용 함수
+        function updateStyles() {
+            const themeColor = colorTheme.value;
+            const textColor = colorText.value;
+
+            // 배경색 적용
+            diaryCard.style.backgroundColor = themeColor;
+            
+            // 글씨색 및 테두리색 일괄 적용
+            diaryCard.style.color = textColor;
+            
+            // 주요 구조 테두리선 색상 변경
+            document.getElementById('diary-header').style.borderColor = textColor;
+            document.getElementById('diary-image-box').style.borderColor = textColor;
+            document.getElementById('diary-title-box').style.borderColor = textColor;
+            diaryGrid.style.borderColor = textColor;
+
+            // 100개 격자 칸 테두리색 변경
+            const cells = document.querySelectorAll('.grid-cell');
+            cells.forEach(cell => {
+                cell.style.borderColor = textColor;
+            });
+        }
+
+        // 이미지 업로드 처리
+        inputImage.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    diaryImg.src = event.target.result;
+                    diaryImg.classList.remove('hidden');
+                    diaryImgPlaceholder.classList.add('hidden');
+                }
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // 고화질 이미지로 저장하기 기능
+        btnSave.addEventListener('click', function() {
+            // 저장 버튼을 누르는 순간 브라우저 창 크기에 구애받지 않도록 scale 상향 조절 (3배 고화질)
+            html2canvas(diaryCard, {
+                scale: 3, 
+                useCORS: true, // 외부 이미지 허용
+                allowTaint: true
+            }).then(canvas => {
+                const link = document.createElement('a');
+                link.download = '그림일기.png';
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+            }).catch(err => {
+                alert('이미지 저장 중 오류가 발생했습니다.');
+                console.error(err);
+            });
+        });
+
+        // 이벤트 리스너 등록
+        inputDate.addEventListener('input', updateDiary);
+        inputWeather.addEventListener('change', updateDiary);
+        inputTitle.addEventListener('input', updateDiary);
+        inputContent.addEventListener('input', updateDiary);
+        
+        colorTheme.addEventListener('input', updateStyles);
+        colorText.addEventListener('input', updateStyles);
+
+        // 최초 실행 초기화
+        initGrid();
+        updateDiary();
+        updateStyles();
+    </script>
+</body>
+</html>
