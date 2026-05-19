@@ -38,17 +38,37 @@
 
             <div>
                 <label class="block text-sm font-medium mb-1">날씨</label>
-                <select id="input-weather" class="w-full border rounded-lg p-2 bg-gray-50 text-sm">
-                    <option value="☀️ 맑음">☀️ 맑음</option>
-                    <option value="☁️ 구름">☁️ 구름</option>
-                    <option value="☔ 비">☔ 비</option>
-                    <option value="❄️ 눈">❄️ 눈</option>
-                </select>
+                <div class="flex flex-col gap-2">
+                    <select id="input-weather" class="w-full border rounded-lg p-2 bg-gray-50 text-sm">
+                        <option value="☀️ 맑음">☀️ 맑음</option>
+                        <option value="☁️ 구름">☁️ 구름</option>
+                        <option value="☔ 비">☔ 비</option>
+                        <option value="❄️ 눈">❄️ 눈</option>
+                        <option value="custom">✍️ 직접 입력</option>
+                    </select>
+                    <input type="text" id="input-weather-custom" placeholder="날씨를 입력하세요 (예: ⚡ 번개)" class="w-full border rounded-lg p-2 text-sm hidden" maxlength="10">
+                </div>
             </div>
 
             <div>
                 <label class="block text-sm font-medium mb-1">사진 올리기</label>
                 <input type="file" id="input-image" accept="image/*" class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
+                
+                <div id="image-control-box" class="hidden border border-gray-200 rounded-xl p-3 bg-gray-50 flex flex-col gap-2 mt-3">
+                    <span class="text-xs font-bold text-indigo-600">↕️ 사진 위치 / 크기 조절</span>
+                    <div>
+                        <label class="text-xs text-gray-500 flex justify-between">크기 (확대): <span id="val-scale">100%</span></label>
+                        <input type="range" id="input-scale" min="1" max="4" step="0.1" value="1" class="w-full h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                    </div>
+                    <div>
+                        <label class="text-xs text-gray-500 flex justify-between">좌우 이동: <span id="val-x">0px</span></label>
+                        <input type="range" id="input-x" min="-300" max="300" step="1" value="0" class="w-full h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                    </div>
+                    <div>
+                        <label class="text-xs text-gray-500 flex justify-between">상하 이동: <span id="val-y">0px</span></label>
+                        <input type="range" id="input-y" min="-300" max="300" step="1" value="0" class="w-full h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                    </div>
+                </div>
             </div>
 
             <div>
@@ -93,7 +113,7 @@
                     </div>
 
                     <div id="diary-image-box" class="w-full h-72 border-2 border-black rounded-lg flex items-center justify-center bg-gray-50 overflow-hidden relative mb-4">
-                        <img id="diary-img" src="" class="w-full h-full object-cover hidden">
+                        <img id="diary-img" src="" class="w-full h-full object-cover hidden" style="transform: translate(0px, 0px) scale(1);">
                         <span id="diary-img-placeholder" class="text-gray-400 text-sm">올라온 사진이 없습니다</span>
                     </div>
 
@@ -115,11 +135,21 @@
         // DOM 요소 캐싱
         const inputDate = document.getElementById('input-date');
         const inputWeather = document.getElementById('input-weather');
+        const inputWeatherCustom = document.getElementById('input-weather-custom');
         const inputImage = document.getElementById('input-image');
         const inputTitle = document.getElementById('input-title');
         const inputContent = document.getElementById('input-content');
         const charCount = document.getElementById('char-count');
         
+        // 사진 조절 컨트롤 요소 캐싱
+        const imageControlBox = document.getElementById('image-control-box');
+        const inputScale = document.getElementById('input-scale');
+        const inputX = document.getElementById('input-x');
+        const inputY = document.getElementById('input-y');
+        const valScale = document.getElementById('val-scale');
+        const valX = document.getElementById('val-x');
+        const valY = document.getElementById('val-y');
+
         const colorTheme = document.getElementById('color-theme');
         const colorText = document.getElementById('color-text');
         const btnSave = document.getElementById('btn-save');
@@ -159,8 +189,14 @@
                 diaryDate.innerHTML = `<span>${year}년</span> <span>${month}월</span> <span>${date}일</span> <span>${week}요일</span>`;
             }
 
-            // 2. 날씨 업데이트
-            diaryWeather.textContent = inputWeather.value;
+            // 2. 날씨 업데이트 (직접 입력 처리 분기)
+            if (inputWeather.value === 'custom') {
+                inputWeatherCustom.classList.remove('hidden');
+                diaryWeather.textContent = inputWeatherCustom.value || '날씨 입력';
+            } else {
+                inputWeatherCustom.classList.add('hidden');
+                diaryWeather.textContent = inputWeather.value;
+            }
 
             // 3. 제목 업데이트
             diaryTitle.textContent = inputTitle.value;
@@ -171,8 +207,23 @@
             
             for (let i = 0; i < 100; i++) {
                 const cell = document.getElementById(`cell-${i}`);
-                cell.textContent = text[i] || ''; // 글자가 없으면 빈칸
+                cell.textContent = text[i] || '';
             }
+        }
+
+        // 사진 스타일(위치/크기) 실시간 갱신 함수
+        function updateImageTransform() {
+            const scale = inputScale.value;
+            const x = inputX.value;
+            const y = inputY.value;
+
+            // 수치 텍스트 표시 업데이트
+            valScale.textContent = `${Math.round(scale * 100)}%`;
+            valX.textContent = `${x}px`;
+            valY.textContent = `${y}px`;
+
+            // 프리뷰 이미지에 css transform 적용
+            diaryImg.style.transform = `translate(${x}px, ${y}px) scale(${scale})`;
         }
 
         // 색상 및 스타일 실시간 적용 함수
@@ -180,19 +231,14 @@
             const themeColor = colorTheme.value;
             const textColor = colorText.value;
 
-            // 배경색 적용
             diaryCard.style.backgroundColor = themeColor;
-            
-            // 글씨색 및 테두리색 일괄 적용
             diaryCard.style.color = textColor;
             
-            // 주요 구조 테두리선 색상 변경
             document.getElementById('diary-header').style.borderColor = textColor;
             document.getElementById('diary-image-box').style.borderColor = textColor;
             document.getElementById('diary-title-box').style.borderColor = textColor;
             diaryGrid.style.borderColor = textColor;
 
-            // 100개 격자 칸 테두리색 변경
             const cells = document.querySelectorAll('.grid-cell');
             cells.forEach(cell => {
                 cell.style.borderColor = textColor;
@@ -208,6 +254,13 @@
                     diaryImg.src = event.target.result;
                     diaryImg.classList.remove('hidden');
                     diaryImgPlaceholder.classList.add('hidden');
+                    
+                    // 사진 조절 패널 보이기 및 슬라이더 값 리셋
+                    imageControlBox.classList.remove('hidden');
+                    inputScale.value = 1;
+                    inputX.value = 0;
+                    inputY.value = 0;
+                    updateImageTransform();
                 }
                 reader.readAsDataURL(file);
             }
@@ -215,10 +268,9 @@
 
         // 고화질 이미지로 저장하기 기능
         btnSave.addEventListener('click', function() {
-            // 저장 버튼을 누르는 순간 브라우저 창 크기에 구애받지 않도록 scale 상향 조절 (3배 고화질)
             html2canvas(diaryCard, {
-                scale: 3, 
-                useCORS: true, // 외부 이미지 허용
+                scale: 3, // 3배 고해상도
+                useCORS: true,
                 allowTaint: true
             }).then(canvas => {
                 const link = document.createElement('a');
@@ -234,9 +286,15 @@
         // 이벤트 리스너 등록
         inputDate.addEventListener('input', updateDiary);
         inputWeather.addEventListener('change', updateDiary);
+        inputWeatherCustom.addEventListener('input', updateDiary); // 커스텀 날씨 입력 시 즉시 반영
         inputTitle.addEventListener('input', updateDiary);
         inputContent.addEventListener('input', updateDiary);
         
+        // 이미지 컨트롤러 이벤트 바인딩
+        inputScale.addEventListener('input', updateImageTransform);
+        inputX.addEventListener('input', updateImageTransform);
+        inputY.addEventListener('input', updateImageTransform);
+
         colorTheme.addEventListener('input', updateStyles);
         colorText.addEventListener('input', updateStyles);
 
