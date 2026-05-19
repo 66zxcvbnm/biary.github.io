@@ -4,13 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>그림 일기</title>
-    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Gaegu&display=swap');
-        .diary-font {
-            font-family: 'Gaegu', 'Malgun Gothic', sans-serif;
-        }
+        /* 다양한 감성의 구글 무료 한글 폰트 불러오기 */
+        @import url('https://fonts.googleapis.com/css2?family=Gaegu&family=Gamja+Flower&family=Gowun+Dodum&family=Nanum+Pen+Script&display=swap');
+
         /* 원고지 격자 스타일 */
         .grid-cell {
             aspect-ratio: 1 / 1;
@@ -85,6 +84,17 @@
             </div>
 
             <h2 class="text-xl font-bold border-b pb-2 mt-2 mb-1">디자인 설정</h2>
+            
+            <div>
+                <label class="block text-sm font-medium mb-1">글씨체 선택</label>
+                <select id="input-font" class="w-full border rounded-lg p-2 bg-gray-50 text-sm">
+                    <option value="'Gaegu', sans-serif">동글동글 개구체</option>
+                    <option value="'Gamja Flower', sans-serif">아기자기 감자꽃체</option>
+                    <option value="'Nanum Pen Script', sans-serif">자유로운 나눔펜체</option>
+                    <option value="'Gowun Dodum', sans-serif">깔끔담백 고운돋움체</option>
+                </select>
+            </div>
+
             <div class="grid grid-cols-2 gap-4">
                 <div>
                     <label class="block text-sm font-medium mb-1">테마 배경색</label>
@@ -102,30 +112,30 @@
         </div>
 
         <div class="shadow-2xl rounded-2xl overflow-hidden bg-white border border-gray-200 sticky top-8">
-            <div id="diary-card" class="w-[450px] h-[800px] p-6 flex flex-col justify-between diary-font select-none bg-white text-black">
+            <div id="diary-card" class="w-[450px] h-[800px] p-6 flex flex-col justify-between select-none bg-white text-black">
                 
                 <div>
-                    <div id="diary-header" class="flex justify-between items-center border-2 border-black p-3 rounded-lg text-lg font-bold mb-4">
+                    <div id="diary-header" class="flex justify-between items-center border-2 border-black p-3 rounded-lg text-lg font-bold mb-4" style="border-color: #000000;">
                         <div id="diary-date" class="flex gap-1">
                             <span>0000년</span> <span>00월</span> <span>00일</span> <span>요일</span>
                         </div>
                         <div id="diary-weather">☀️ 맑음</div>
                     </div>
 
-                    <div id="diary-image-box" class="w-full h-72 border-2 border-black rounded-lg flex items-center justify-center bg-gray-50 overflow-hidden relative mb-4">
+                    <div id="diary-image-box" class="w-full h-72 border-2 border-black rounded-lg flex items-center justify-center bg-gray-50 overflow-hidden relative mb-4" style="border-color: #000000;">
                         <div id="diary-img-wrapper" class="w-full h-full flex items-center justify-center">
                             <img id="diary-img" src="" class="w-full h-full object-cover hidden inline-block" style="transform: translate(0px, 0px) scale(1);">
                         </div>
                         <span id="diary-img-placeholder" class="text-gray-400 text-sm">올라온 사진이 없습니다</span>
                     </div>
 
-                    <div id="diary-title-box" class="border-b-2 border-black pb-1 mb-4 text-xl font-bold flex items-center gap-2">
+                    <div id="diary-title-box" class="border-b-2 border-black pb-1 mb-4 text-xl font-bold flex items-center gap-2" style="border-color: #000000;">
                         <span>제목:</span>
                         <span id="diary-title" class="font-normal"></span>
                     </div>
                 </div>
 
-                <div id="diary-grid" class="grid grid-cols-10 border-t border-l border-black">
+                <div id="diary-grid" class="grid grid-cols-10 border-t border-l border-black" style="border-color: #000000;">
                     </div>
 
             </div>
@@ -141,6 +151,7 @@
         const inputTitle = document.getElementById('input-title');
         const inputContent = document.getElementById('input-content');
         const charCount = document.getElementById('char-count');
+        const inputFont = document.getElementById('input-font'); // 폰트 선택창 캐싱
         
         const imageControlBox = document.getElementById('image-control-box');
         const inputScale = document.getElementById('input-scale');
@@ -171,7 +182,8 @@
             diaryGrid.innerHTML = '';
             for (let i = 0; i < 100; i++) {
                 const cell = document.createElement('div');
-                cell.className = 'grid-cell border-r border-b border-black';
+                cell.className = 'grid-cell border-r border-b';
+                cell.style.borderColor = colorText.value;
                 cell.id = `cell-${i}`;
                 diaryGrid.appendChild(cell);
             }
@@ -220,13 +232,16 @@
             diaryImg.style.transform = `translate(${x}px, ${y}px) scale(${scale})`;
         }
 
-        // 스타일(색상) 실시간 반영
+        // 스타일(색상 및 폰트) 실시간 반영
         function updateStyles() {
             const themeColor = colorTheme.value;
             const textColor = colorText.value;
+            const selectedFont = inputFont.value;
 
+            // 배경색, 글씨색, 글씨체 반영
             diaryCard.style.backgroundColor = themeColor;
             diaryCard.style.color = textColor;
+            diaryCard.style.fontFamily = selectedFont;
             
             document.getElementById('diary-header').style.borderColor = textColor;
             document.getElementById('diary-image-box').style.borderColor = textColor;
@@ -259,18 +274,17 @@
             }
         });
 
-        // 🛠️ 핵심 변경 부분: 이미지 저장 로직 수정 (보안 오류 우회 및 조절값 고정 보완)
+        // 이미지 저장 기능
         btnSave.addEventListener('click', function() {
-            // 버튼 일시 비활성화 (중복 클릭 방지)
             btnSave.disabled = true;
             btnSave.textContent = '⏳ 저장 중...';
 
             html2canvas(diaryCard, {
-                scale: 3,          // 3배 고화질 설정 유지
-                useCORS: true,     // 외부 폰트/에셋 로드 허용
-                logging: false,    // 불필요한 콘솔 로그 끄기
+                scale: 3, // 3배 고화질
+                useCORS: true,     
+                logging: false,    
                 scrollX: 0,
-                scrollY: -window.scrollY, // 화면 캡처 시 밀림 현상 방지
+                scrollY: -window.scrollY, 
                 windowWidth: document.documentElement.offsetWidth,
                 windowHeight: document.documentElement.offsetHeight
             }).then(canvas => {
@@ -279,11 +293,9 @@
                 link.href = canvas.toDataURL('image/png');
                 link.click();
                 
-                // 버튼 복구
                 btnSave.disabled = false;
                 btnSave.textContent = '📷 이미지 저장';
             }).catch(err => {
-                // 어떤 오류인지 구체적으로 파악할 수 있도록 alert창으로 안내
                 alert('이미지 저장 중 오류가 발생했습니다.\n오류 내용: ' + err.message);
                 console.error(err);
                 btnSave.disabled = false;
@@ -302,6 +314,7 @@
         inputX.addEventListener('input', updateImageTransform);
         inputY.addEventListener('input', updateImageTransform);
 
+        inputFont.addEventListener('change', updateStyles); // 폰트 변경 이벤트 바인딩
         colorTheme.addEventListener('input', updateStyles);
         colorText.addEventListener('input', updateStyles);
 
