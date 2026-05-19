@@ -113,7 +113,9 @@
                     </div>
 
                     <div id="diary-image-box" class="w-full h-72 border-2 border-black rounded-lg flex items-center justify-center bg-gray-50 overflow-hidden relative mb-4">
-                        <img id="diary-img" src="" class="w-full h-full object-cover hidden" style="transform: translate(0px, 0px) scale(1);">
+                        <div id="diary-img-wrapper" class="w-full h-full flex items-center justify-center">
+                            <img id="diary-img" src="" class="w-full h-full object-cover hidden inline-block" style="transform: translate(0px, 0px) scale(1);">
+                        </div>
                         <span id="diary-img-placeholder" class="text-gray-400 text-sm">올라온 사진이 없습니다</span>
                     </div>
 
@@ -132,7 +134,6 @@
     </div>
 
     <script>
-        // DOM 요소 캐싱
         const inputDate = document.getElementById('input-date');
         const inputWeather = document.getElementById('input-weather');
         const inputWeatherCustom = document.getElementById('input-weather-custom');
@@ -141,7 +142,6 @@
         const inputContent = document.getElementById('input-content');
         const charCount = document.getElementById('char-count');
         
-        // 사진 조절 컨트롤 요소 캐싱
         const imageControlBox = document.getElementById('image-control-box');
         const inputScale = document.getElementById('input-scale');
         const inputX = document.getElementById('input-x');
@@ -162,11 +162,11 @@
         const diaryTitle = document.getElementById('diary-title');
         const diaryGrid = document.getElementById('diary-grid');
 
-        // 기본 날짜 설정 (오늘)
+        // 오늘 날짜 기본 지정
         const today = new Date().toISOString().split('T')[0];
         inputDate.value = today;
 
-        // 100자 격자 생성 함수
+        // 원고지 초기화
         function initGrid() {
             diaryGrid.innerHTML = '';
             for (let i = 0; i < 100; i++) {
@@ -177,9 +177,8 @@
             }
         }
 
-        // 실시간 연동 업데이트 함수
+        // 실시간 정보 갱신
         function updateDiary() {
-            // 1. 날짜 업데이트
             if (inputDate.value) {
                 const d = new Date(inputDate.value);
                 const year = d.getFullYear();
@@ -189,7 +188,6 @@
                 diaryDate.innerHTML = `<span>${year}년</span> <span>${month}월</span> <span>${date}일</span> <span>${week}요일</span>`;
             }
 
-            // 2. 날씨 업데이트 (직접 입력 처리 분기)
             if (inputWeather.value === 'custom') {
                 inputWeatherCustom.classList.remove('hidden');
                 diaryWeather.textContent = inputWeatherCustom.value || '날씨 입력';
@@ -198,10 +196,8 @@
                 diaryWeather.textContent = inputWeather.value;
             }
 
-            // 3. 제목 업데이트
             diaryTitle.textContent = inputTitle.value;
 
-            // 4. 내용(격자글) 업데이트
             const text = inputContent.value;
             charCount.textContent = `${text.length} / 100`;
             
@@ -211,22 +207,20 @@
             }
         }
 
-        // 사진 스타일(위치/크기) 실시간 갱신 함수
+        // 이미지 위치/크기 트랜스폼 반영
         function updateImageTransform() {
             const scale = inputScale.value;
             const x = inputX.value;
             const y = inputY.value;
 
-            // 수치 텍스트 표시 업데이트
             valScale.textContent = `${Math.round(scale * 100)}%`;
             valX.textContent = `${x}px`;
             valY.textContent = `${y}px`;
 
-            // 프리뷰 이미지에 css transform 적용
             diaryImg.style.transform = `translate(${x}px, ${y}px) scale(${scale})`;
         }
 
-        // 색상 및 스타일 실시간 적용 함수
+        // 스타일(색상) 실시간 반영
         function updateStyles() {
             const themeColor = colorTheme.value;
             const textColor = colorText.value;
@@ -245,7 +239,7 @@
             });
         }
 
-        // 이미지 업로드 처리
+        // 이미지 파일 로드
         inputImage.addEventListener('change', function(e) {
             const file = e.target.files[0];
             if (file) {
@@ -255,7 +249,6 @@
                     diaryImg.classList.remove('hidden');
                     diaryImgPlaceholder.classList.add('hidden');
                     
-                    // 사진 조절 패널 보이기 및 슬라이더 값 리셋
                     imageControlBox.classList.remove('hidden');
                     inputScale.value = 1;
                     inputX.value = 0;
@@ -266,31 +259,45 @@
             }
         });
 
-        // 고화질 이미지로 저장하기 기능
+        // 🛠️ 핵심 변경 부분: 이미지 저장 로직 수정 (보안 오류 우회 및 조절값 고정 보완)
         btnSave.addEventListener('click', function() {
+            // 버튼 일시 비활성화 (중복 클릭 방지)
+            btnSave.disabled = true;
+            btnSave.textContent = '⏳ 저장 중...';
+
             html2canvas(diaryCard, {
-                scale: 3, // 3배 고해상도
-                useCORS: true,
-                allowTaint: true
+                scale: 3,          // 3배 고화질 설정 유지
+                useCORS: true,     // 외부 폰트/에셋 로드 허용
+                logging: false,    // 불필요한 콘솔 로그 끄기
+                scrollX: 0,
+                scrollY: -window.scrollY, // 화면 캡처 시 밀림 현상 방지
+                windowWidth: document.documentElement.offsetWidth,
+                windowHeight: document.documentElement.offsetHeight
             }).then(canvas => {
                 const link = document.createElement('a');
                 link.download = '그림일기.png';
                 link.href = canvas.toDataURL('image/png');
                 link.click();
+                
+                // 버튼 복구
+                btnSave.disabled = false;
+                btnSave.textContent = '📷 이미지 저장';
             }).catch(err => {
-                alert('이미지 저장 중 오류가 발생했습니다.');
+                // 어떤 오류인지 구체적으로 파악할 수 있도록 alert창으로 안내
+                alert('이미지 저장 중 오류가 발생했습니다.\n오류 내용: ' + err.message);
                 console.error(err);
+                btnSave.disabled = false;
+                btnSave.textContent = '📷 이미지 저장';
             });
         });
 
-        // 이벤트 리스너 등록
+        // 이벤트 바인딩
         inputDate.addEventListener('input', updateDiary);
         inputWeather.addEventListener('change', updateDiary);
-        inputWeatherCustom.addEventListener('input', updateDiary); // 커스텀 날씨 입력 시 즉시 반영
+        inputWeatherCustom.addEventListener('input', updateDiary);
         inputTitle.addEventListener('input', updateDiary);
         inputContent.addEventListener('input', updateDiary);
         
-        // 이미지 컨트롤러 이벤트 바인딩
         inputScale.addEventListener('input', updateImageTransform);
         inputX.addEventListener('input', updateImageTransform);
         inputY.addEventListener('input', updateImageTransform);
@@ -298,7 +305,7 @@
         colorTheme.addEventListener('input', updateStyles);
         colorText.addEventListener('input', updateStyles);
 
-        // 최초 실행 초기화
+        // 초기화 실행
         initGrid();
         updateDiary();
         updateStyles();
